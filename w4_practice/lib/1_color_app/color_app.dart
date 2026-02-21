@@ -9,22 +9,24 @@ void main() {
   );
 }
 
-enum CardType { red, blue }
+enum CardType {
+  red(Colors.red),
+  green(Colors.green),
+  yellow(Colors.yellow),
+  blue(Colors.blue);
+
+  const CardType(this.color);
+  final Color color;
+}
 
 class TapCountNotifier extends ChangeNotifier {
-  int _redTapCount = 0;
-  int _blueTapCount = 0;
-
-  int get redTapCount => _redTapCount;
-  int get blueTapCount => _blueTapCount;
-
-  void incrementRedTap() {
-    _redTapCount++;
-    notifyListeners();
-  }
-
-  void incrementBlueTap() {
-    _blueTapCount++;
+  final Map<CardType, int> _tapCounts = {
+    for (var type in CardType.values) type: 0,
+  };
+  int getCount(CardType type) => _tapCounts[type]!;
+  Map<CardType, int> get allCounts => _tapCounts;
+  void increment(CardType type) {
+    _tapCounts[type] = getCount(type) + 1;
     notifyListeners();
   }
 }
@@ -87,18 +89,13 @@ class ColorTapsScreen extends StatelessWidget {
         listenable: notifier,
         builder: (context, child) {
           return Column(
-            children: [
-              ColorTap(
-                type: CardType.red,
-                tapCount: notifier.redTapCount,
-                onTap: notifier.incrementRedTap,
-              ),
-              ColorTap(
-                type: CardType.blue,
-                tapCount: notifier.blueTapCount,
-                onTap: notifier.incrementBlueTap,
-              ),
-            ],
+            children: CardType.values.map((type) {
+              return ColorTap(
+                type: type,
+                tapCount: notifier.getCount(type),
+                onTap: () => notifier.increment(type),
+              );
+            }).toList(),
           );
         },
       ),
@@ -118,7 +115,7 @@ class ColorTap extends StatelessWidget {
     required this.onTap,
   });
 
-  Color get backgroundColor => type == CardType.red ? Colors.red : Colors.blue;
+  Color get backgroundColor => type.color;
 
   @override
   Widget build(BuildContext context) {
@@ -158,16 +155,12 @@ class StatisticsScreen extends StatelessWidget {
           return Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  'Red Taps: ${notifier.redTapCount}',
+              children: notifier.allCounts.entries.map((entry) {
+                return Text(
+                  'Number of ${entry.key.name} = ${entry.value}',
                   style: TextStyle(fontSize: 24),
-                ),
-                Text(
-                  'Blue Taps: ${notifier.blueTapCount}',
-                  style: TextStyle(fontSize: 24),
-                ),
-              ],
+                );
+              }).toList(),
             ),
           );
         },
